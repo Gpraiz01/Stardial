@@ -122,6 +122,43 @@ a {
   text-decoration: none;
 }
 
+/* -------------------------------------------------------------------------
+ * Issue #56 — Long URLs break layout in article pages
+ *
+ * Without these rules a bare URL or a long anchor href renders as a single
+ * unbreakable token that overflows its container and distorts the layout.
+ *
+ * `overflow-wrap: break-word` — allows the browser to break a word (or URL)
+ *   mid-token if no other break opportunity exists. Preferred over
+ *   `word-break: break-all` which breaks *every* word aggressively.
+ * `word-break: break-word` — legacy alias kept for older WebKit browsers.
+ * `hyphens: auto` — adds soft hyphens where the text is broken (requires a
+ *   `lang` attribute on the <html> element to work correctly).
+ *
+ * These rules are scoped to article-like containers so they do not affect
+ * UI chrome (buttons, badges, navigation labels, etc.).
+ * ------------------------------------------------------------------------- */
+article a,
+.prose a,
+.article-body a {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* Apply the same treatment to any element that explicitly renders long URLs,
+   e.g. code snippets or hash values displayed in article bodies. */
+article code,
+.prose code,
+.article-body code,
+article pre,
+.prose pre,
+.article-body pre {
+  overflow-wrap: break-word;
+  word-break: break-all; /* break-all is intentional for code/hash blocks */
+  white-space: pre-wrap;
+}
+
 /* Toast entrance animation (used by toast-provider.tsx via `animate-slide-in`).
    Animates only `transform` and `opacity` — both GPU-compositable — so the
    slide stays smooth on mobile. */
