@@ -17,7 +17,7 @@ import { authAccountRouter } from "../routes/auth-account.js";
 import { authJwtMiddleware } from "../middleware/auth-jwt.js";
 import { errorHandler, notFoundHandler } from "../middleware/error.js";
 import { requestIdMiddleware } from "../middleware/request-id.js";
-import { signToken } from "../services/jwt.js";
+import { signRefreshToken, signToken } from "../services/jwt.js";
 
 const WALLET_A = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";
 const WALLET_B = "GBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBWHF";
@@ -74,6 +74,7 @@ describe("POST /auth/logout across tabs (#1451)", () => {
   it("logs the current session out and reports it", async () => {
     const app = createApp();
     const token = signToken(WALLET_A, 0);
+    const refreshToken = signRefreshToken(WALLET_A, 0);
 
     const res = await request(app).post("/auth/logout").set("Authorization", bearer(token));
 
@@ -81,6 +82,7 @@ describe("POST /auth/logout across tabs (#1451)", () => {
     expect(res.body).toMatchObject({ success: true, sessionsRevoked: true });
     expect(res.body.requestId).toBe(res.headers["x-request-id"]);
     expect(versions.get(WALLET_A)).toBe(1);
+    await request(app).post("/auth/refresh").send({ refreshToken }).expect(401);
   });
 
   it("rejects the same token afterwards with SESSION_REVOKED", async () => {
@@ -142,6 +144,25 @@ describe("POST /auth/logout across tabs (#1451)", () => {
     await request(app).get("/protected").set("Authorization", bearer(oldToken)).expect(401);
   });
 
+  it("rejects a stale refresh token without invalidating the current session refresh token", async () => {
+    const app = createApp();
+    versions.set(WALLET_A, 2);
+    const staleRefreshToken = signRefreshToken(WALLET_A, 1);
+    const currentRefreshToken = signRefreshToken(WALLET_A, 2);
+
+    const staleResponse = await request(app)
+      .post("/auth/refresh")
+      .send({ refreshToken: staleRefreshToken });
+    expect(staleResponse.status).toBe(401);
+    expect(staleResponse.body.code).toBe("SESSION_REVOKED");
+
+    const currentResponse = await request(app)
+      .post("/auth/refresh")
+      .send({ refreshToken: currentRefreshToken });
+    expect(currentResponse.status).toBe(200);
+    expect(currentResponse.body.refreshToken).toBeTruthy();
+  });
+
   it("does not affect other wallets", async () => {
     const app = createApp();
     const a = signToken(WALLET_A, 0);
@@ -190,6 +211,7 @@ describe("POST /auth/logout across tabs (#1451)", () => {
   it("reports sessionsRevoked:false when another tab logged out first (race after the auth check)", async () => {
     const app = createApp();
     const token = signToken(WALLET_A, 0);
+    const newerRefreshToken = signRefreshToken(WALLET_A, 1);
     raceBeforeRevoke = true;
 
     const res = await request(app).post("/auth/logout").set("Authorization", bearer(token));
@@ -200,16 +222,19 @@ describe("POST /auth/logout across tabs (#1451)", () => {
     expect(versions.get(WALLET_A)).toBe(1);
     raceBeforeRevoke = false;
     await request(app).get("/protected").set("Authorization", bearer(token)).expect(401);
+    await request(app).post("/auth/refresh").send({ refreshToken: newerRefreshToken }).expect(200);
   });
 
   it("treats a wallet with no account row as nothing to revoke, not an error", async () => {
     const app = createApp();
     const token = signToken(WALLET_NO_ROW, 0);
+    const refreshToken = signRefreshToken(WALLET_NO_ROW, 0);
 
     const res = await request(app).post("/auth/logout").set("Authorization", bearer(token));
 
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ success: true, sessionsRevoked: false });
+    await request(app).post("/auth/refresh").send({ refreshToken }).expect(401);
   });
 
   describe("failure cases", () => {
@@ -247,6 +272,20 @@ describe("POST /auth/logout across tabs (#1451)", () => {
       const res = await request(createApp())
         .post("/auth/logout")
         .set("Authorization", bearer(expired));
+      expect(res.status).toBe(401);
+      expect(revokeCalls).toHaveLength(0);
+      expect(versions.get(WALLET_A)).toBe(0);
+    });
+
+    it("rejects a token without an expiration claim without revoking anything", async () => {
+      const jwt = (await import("jsonwebtoken")).default;
+      const neverExpires = jwt.sign(
+        { walletAddress: WALLET_A, sv: 0 },
+        process.env.JWT_SECRET || "dev-secret-change-in-production",
+      );
+      const res = await request(createApp())
+        .post("/auth/logout")
+        .set("Authorization", bearer(neverExpires));
       expect(res.status).toBe(401);
       expect(revokeCalls).toHaveLength(0);
       expect(versions.get(WALLET_A)).toBe(0);

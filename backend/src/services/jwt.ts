@@ -61,9 +61,14 @@ export function rotateRefreshToken(token: string): { accessToken: string; refres
   };
 }
 
-export function revokeRefreshTokens(walletAddress: string): void {
+export function revokeRefreshTokens(walletAddress: string, throughSessionVersion?: number): void {
   for (const [jti, active] of activeRefreshTokens) {
-    if (active.walletAddress === walletAddress) activeRefreshTokens.delete(jti);
+    if (
+      active.walletAddress === walletAddress &&
+      (throughSessionVersion === undefined || active.sessionVersion <= throughSessionVersion)
+    ) {
+      activeRefreshTokens.delete(jti);
+    }
   }
 }
 
@@ -73,7 +78,18 @@ export function signToken(walletAddress: string, sessionVersion = 0): string {
 
 export function verifyToken(token: string): WalletTokenPayload | null {
   try {
-    return jwt.verify(token, SECRET) as WalletTokenPayload;
+    const payload = jwt.verify(token, SECRET);
+    // jsonwebtoken checks `exp` when present, but treats a signed token with
+    // no expiry claim as valid forever. Access tokens must always be bounded.
+    if (
+      typeof payload !== "object" ||
+      payload === null ||
+      typeof payload.exp !== "number" ||
+      !Number.isFinite(payload.exp)
+    ) {
+      return null;
+    }
+    return payload as WalletTokenPayload;
   } catch {
     return null;
   }
