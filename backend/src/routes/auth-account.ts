@@ -16,7 +16,7 @@ import { revokeSessionForWallet } from "../services/session-revocation.js";
 import { hashEmailForLog, logAuthEvent } from "../services/auth-events.js";
 import { recordAuthAudit } from "../services/auth-audit.js";
 import { logger } from "../services/logger.js";
-import { rotateRefreshToken, revokeRefreshTokens } from "../services/jwt.js";
+import { rotateRefreshToken, revokeRefreshTokens, verifyRefreshToken } from "../services/jwt.js";
 import { getSessionVersion } from "../services/session-revocation.js";
 
 export const authAccountRouter = Router();
@@ -33,8 +33,8 @@ const refreshTokenSchema = z.object({
 authAccountRouter.post("/refresh", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { refreshToken } = refreshTokenSchema.parse(req.body);
-    const rotated = rotateRefreshToken(refreshToken);
-    if (!rotated) {
+    const verified = verifyRefreshToken(refreshToken);
+    if (!verified) {
       return sendErrorResponse(res, 401, {
         error: "invalid_refresh_token",
         code: "INVALID_REFRESH_TOKEN",
@@ -44,13 +44,24 @@ authAccountRouter.post("/refresh", async (req: Request, res: Response, next: Nex
       });
     }
 
-    const currentVersion = await getSessionVersion(rotated.walletAddress);
-    if (currentVersion !== null && currentVersion !== rotated.sessionVersion) {
-      revokeRefreshTokens(rotated.walletAddress);
+    const tokenVersion = typeof verified.sv === "number" ? verified.sv : 0;
+    const currentVersion = await getSessionVersion(verified.walletAddress);
+    if (currentVersion !== null && currentVersion !== tokenVersion) {
       return sendErrorResponse(res, 401, {
         error: "session_revoked",
         code: "SESSION_REVOKED",
         message: "Session has been revoked. Please log in again.",
+        requestId: res.locals.requestId,
+        details: {},
+      });
+    }
+
+    const rotated = rotateRefreshToken(refreshToken);
+    if (!rotated) {
+      return sendErrorResponse(res, 401, {
+        error: "invalid_refresh_token",
+        code: "INVALID_REFRESH_TOKEN",
+        message: "Refresh token is invalid, expired, or already used.",
         requestId: res.locals.requestId,
         details: {},
       });
@@ -103,7 +114,7 @@ authAccountRouter.post(
     try {
       const { walletAddress, sessionVersion } = req.user!;
       const revoked = await revokeSessionForWallet(walletAddress, sessionVersion ?? 0);
-      revokeRefreshTokens(walletAddress);
+      revokeRefreshTokens(walletAddress, sessionVersion ?? 0);
 
       logAuthEvent(res, "logout", "success", { sessionsRevoked: revoked > 0 });
       return res.status(200).json({

@@ -175,11 +175,24 @@ describe("authJwtMiddleware session revocation (#1446)", () => {
   });
 
   it("treats a token without an sv claim (issued before #1446) as version 0", async () => {
-    const legacy = jwt.sign({ walletAddress: WALLET_A }, process.env.JWT_SECRET || "dev-secret-change-in-production");
+    const legacy = jwt.sign(
+      { walletAddress: WALLET_A },
+      process.env.JWT_SECRET || "dev-secret-change-in-production",
+      { expiresIn: "24h" },
+    );
     await getProtected(createApp(), legacy).expect(200);
 
     users[0].sessionVersion = 1;
     await getProtected(createApp(), legacy).expect(401);
+  });
+
+  it("rejects a signed access token without an expiration claim", async () => {
+    const neverExpires = jwt.sign(
+      { walletAddress: WALLET_A, sv: 0 },
+      process.env.JWT_SECRET || "dev-secret-change-in-production",
+    );
+    const res = await getProtected(createApp(), neverExpires).expect(401);
+    expect(res.body.code).toBe("UNAUTHORIZED");
   });
 
   it("keeps the previous behavior for a wallet with no user row", async () => {
