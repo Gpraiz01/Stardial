@@ -1,0 +1,147 @@
+/* AccountSettings.css */
+
+.settings-container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: inherit;
+}
+
+.settings-container h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.settings-section {
+  margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-section h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  margin-bottom: 0.5rem;
+}
+
+/* #53 — required field asterisk */
+.settings-required {
+  color: #c03030;
+  margin-left: 2px;
+}
+
+/* Input base */
+.settings-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.settings-input:focus {
+  border-color: #2d7a4f;
+  box-shadow: 0 0 0 2px rgba(45, 122, 79, 0.2);
+}
+
+/* #53/#54 — invalid state uses border + not just colour */
+.settings-input--error {
+  border-color: #c03030;
+  background-color: rgba(192, 48, 48, 0.04);
+}
+
+.settings-input--error:focus {
+  border-color: #c03030;
+  box-shadow: 0 0 0 2px rgba(192, 48, 48, 0.2);
+}
+
+/* #54 — field-level error: icon + text, not colour alone */
+.settings-field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #c03030;
+  margin-top: 0.25rem;
+}
+
+.settings-error-icon {
+  font-size: 0.875rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Toggle (checkbox) */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  font-size: 0.9375rem;
+}
+
+/* #54 — feedback message: icon + text convey state, not colour alone */
+.settings-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.settings-status-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.settings-message--success {
+  color: #1a4a2e;
+  background-color: #e8f5ee;
+  border: 1px solid rgba(26, 74, 46, 0.2);
+}
+
+.settings-message--error {
+  color: #7a1a1a;
+  background-color: #fce8e8;
+  border: 1px solid rgba(192, 48, 48, 0.3);
+}
+
+/* Save button */
+.settings-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  background-color: #1a4a2e;
+  color: #fff;
+  border: none;
+  border-radius: 2rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s, opacity 0.2s;
+  width: 100%;
+}
+
+.settings-save-btn:hover:not(:disabled) {
+  background-color: #2d7a4f;
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

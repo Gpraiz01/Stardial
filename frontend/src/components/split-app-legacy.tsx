@@ -1235,8 +1235,16 @@ export function SplitApp({
           {wallet.connected && (
             <div className="mt-8 flex flex-wrap gap-8 border-t border-white/5 pt-8 text-[11px] font-bold uppercase tracking-[0.2em] text-muted">
               <div className="flex items-center gap-3">
-                <span className="h-2 w-2 rounded-full bg-greenBright animate-pulse" />
-                <span role="status" aria-live="polite">Status: Connected</span>
+                {/* #54 — status conveyed by both colour dot AND text label */}
+                <span
+                  aria-hidden="true"
+                  title="Connected"
+                  className="h-2 w-2 rounded-full bg-greenBright animate-pulse"
+                />
+                <span role="status" aria-live="polite">
+                  <span className="sr-only">Connection status:</span>
+                  ✓ Connected
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <span className="opacity-40">Wallet</span>

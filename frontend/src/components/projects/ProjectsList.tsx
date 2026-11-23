@@ -193,32 +193,56 @@ export function ProjectsList({
             </div>
           )}
 
-          {/* Load more — visible when backend signals more pages exist (#380) */}
+          {/* Load more — visible when backend signals more pages exist (#380)
+              #55 — pagination controls are distinct, labelled and consistently styled */}
           {projectsList.length > 0 && (
-            <div className="flex flex-col items-center gap-3">
+            <nav aria-label="Project list pagination" className="flex flex-col items-center gap-3">
               {hasMoreProjects ? (
                 <button
                   onClick={() => void onFetchProjectsList(true)}
                   disabled={isLoadingProjectsList}
-                  className="premium-button rounded-2xl bg-white/5 border border-white/10 px-10 py-4 text-xs font-bold uppercase tracking-widest text-muted hover:text-ink hover:bg-white/10 transition-all disabled:opacity-30"
+                  aria-label={isLoadingProjectsList ? "Loading more projects…" : "Load more projects"}
+                  aria-live="polite"
+                  aria-busy={isLoadingProjectsList}
+                  className="premium-button inline-flex items-center gap-2 rounded-2xl bg-greenMid px-10 py-4 text-xs font-bold uppercase tracking-widest text-white shadow-md hover:bg-greenDeep transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {isLoadingProjectsList ? (
-                    <span className="flex items-center gap-2">
-                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <>
+                      <svg
+                        className="animate-spin h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 12a8 8 0 018-8v8z" />
                       </svg>
-                      Loading…
-                    </span>
+                      Loading more…
+                    </>
                   ) : (
-                    "Load More ↓"
+                    <>
+                      <svg
+                        className="h-3.5 w-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Load More Projects
+                    </>
                   )}
                 </button>
               ) : (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-40">
-                  All projects loaded
+                <p
+                  role="status"
+                  className="text-[10px] font-bold uppercase tracking-widest text-muted opacity-60"
+                >
+                  ✓ All projects loaded
                 </p>
               )}
-            </div>
+            </nav>
           )}
         </div>
       ) : fetchedProject ? (
